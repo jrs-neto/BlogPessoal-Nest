@@ -2,10 +2,8 @@ import { Body, Controller, Delete, Get, HttpCode, HttpStatus, Param, ParseIntPip
 import { PostagemService } from '../services/postagem.service';
 import { Postagem } from '../entities/postagem.entity';
 
-
 @Controller('/postagens')
 export class PostagemController {
-
   constructor(
     private readonly postagemService: PostagemService
   ) { }

@@ -3,6 +3,7 @@ import { InjectRepository } from "@nestjs/typeorm";
 import { Postagem } from "../entities/postagem.entity";
 import { ILike, Repository } from "typeorm";
 import { DeleteResult } from "typeorm/browser";
+import { TemaService } from "../../tema/services/tema.service";
 
 @Injectable()
 export class PostagemService {
@@ -10,11 +11,16 @@ export class PostagemService {
   constructor(
     @InjectRepository(Postagem)
     private postagemRepository: Repository<Postagem>,
+    private readonly temaService: TemaService
   ) { }
 
   async findAll(): Promise<Postagem[]> {
     // SELECT * FROM tb_postagens
-    return this.postagemRepository.find();
+    return this.postagemRepository.find({
+      relations: {
+        tema: true
+      }
+    });
   }
 
   async findById(id: number): Promise<Postagem> {
@@ -22,6 +28,9 @@ export class PostagemService {
     const postagem = await this.postagemRepository.findOne({
       where: {
         id
+      },
+      relations: {
+        tema: true
       }
     })
 
@@ -36,11 +45,16 @@ export class PostagemService {
     return this.postagemRepository.find({
       where: {
         titulo: ILike(`%${titulo}%`)
+      },
+      relations: {
+        tema: true
       }
     })
   }
 
   async create(postagem: Postagem): Promise<Postagem> {
+
+    await this.temaService.findById(postagem.tema.id)
     // INSERT INTO tb_postagens (titulo, texto) VALUES(?, ?);
     return await this.postagemRepository.save(postagem);
   }
@@ -50,7 +64,12 @@ export class PostagemService {
     if (!postagem.id || postagem.id <= 0)
       throw new HttpException('O ID da postagem é inválido!', HttpStatus.BAD_REQUEST);
 
+    // Checa se a Postagem existe
     await this.findById(postagem.id);
+
+    // Checa se o Tema da Postagem existe
+    await this.temaService.findById(postagem.tema.id);
+
     // UPDATE INTO tb_postagens SET titulo = ?,
     // texto = ?, 
     // data = CURRENT_TIMESTAMP()
