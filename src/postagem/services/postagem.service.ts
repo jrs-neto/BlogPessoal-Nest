@@ -1,25 +1,25 @@
-import { HttpException, HttpStatus, Injectable } from "@nestjs/common";
-import { InjectRepository } from "@nestjs/typeorm";
-import { Postagem } from "../entities/postagem.entity";
-import { ILike, Repository } from "typeorm";
-import { DeleteResult } from "typeorm/browser";
-import { TemaService } from "../../tema/services/tema.service";
+import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Postagem } from '../entities/postagem.entity';
+import { ILike, Repository } from 'typeorm';
+import { DeleteResult } from 'typeorm/browser';
+import { TemaService } from '../../tema/services/tema.service';
 
 @Injectable()
 export class PostagemService {
-
   constructor(
     @InjectRepository(Postagem)
     private postagemRepository: Repository<Postagem>,
-    private readonly temaService: TemaService
-  ) { }
+    private readonly temaService: TemaService,
+  ) {}
 
   async findAll(): Promise<Postagem[]> {
     // SELECT * FROM tb_postagens
     return this.postagemRepository.find({
       relations: {
-        tema: true
-      }
+        tema: true,
+        usuario: true,
+      },
     });
   }
 
@@ -27,12 +27,13 @@ export class PostagemService {
     // SELECT * FROM tb_postagens WHERE id = ?
     const postagem = await this.postagemRepository.findOne({
       where: {
-        id
+        id,
       },
       relations: {
-        tema: true
-      }
-    })
+        tema: true,
+        usuario: true,
+      },
+    });
 
     if (!postagem)
       throw new HttpException('Postagem não encontrada!', HttpStatus.NOT_FOUND);
@@ -44,25 +45,27 @@ export class PostagemService {
     // SELECT * FROM tb_postagens WHERE titulo LIKE '%?%';
     return this.postagemRepository.find({
       where: {
-        titulo: ILike(`%${titulo}%`)
+        titulo: ILike(`%${titulo}%`),
       },
       relations: {
-        tema: true
-      }
-    })
+        tema: true,
+        usuario: true,
+      },
+    });
   }
 
   async create(postagem: Postagem): Promise<Postagem> {
-
-    await this.temaService.findById(postagem.tema.id)
+    await this.temaService.findById(postagem.tema.id);
     // INSERT INTO tb_postagens (titulo, texto) VALUES(?, ?);
     return await this.postagemRepository.save(postagem);
   }
 
   async update(postagem: Postagem): Promise<Postagem> {
-
     if (!postagem.id || postagem.id <= 0)
-      throw new HttpException('O ID da postagem é inválido!', HttpStatus.BAD_REQUEST);
+      throw new HttpException(
+        'O ID da postagem é inválido!',
+        HttpStatus.BAD_REQUEST,
+      );
 
     // Checa se a Postagem existe
     await this.findById(postagem.id);
@@ -71,18 +74,16 @@ export class PostagemService {
     await this.temaService.findById(postagem.tema.id);
 
     // UPDATE INTO tb_postagens SET titulo = ?,
-    // texto = ?, 
+    // texto = ?,
     // data = CURRENT_TIMESTAMP()
     // WHERE id = ?;
     return await this.postagemRepository.save(postagem);
   }
 
   async delete(id: number): Promise<DeleteResult> {
-
     await this.findById(id);
 
     // DELETE tb_postagens FROM id = ?
     return this.postagemRepository.delete(id);
   }
-
 }
